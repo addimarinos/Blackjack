@@ -38,6 +38,11 @@ namespace BlackJackForOne.Models
             }
             return allCards;
         }
+
+        public bool HasBusted()
+        {
+            return CurrentValue() > 21; 
+        }
         public (int, int) ScoringResult() // check and return value of hand and number of cards
         {
             return (CurrentValue(), _cards.Count);

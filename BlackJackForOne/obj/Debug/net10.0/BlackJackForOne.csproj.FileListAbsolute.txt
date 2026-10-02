@@ -12,3 +12,4 @@ c:\Users\Arnar Marinosonn\Documents\blackjack\blackjackforone\BlackJackForOne\ob
 c:\Users\Arnar Marinosonn\Documents\blackjack\blackjackforone\BlackJackForOne\obj\Debug\net10.0\BlackJackForOne.pdb
 c:\Users\Arnar Marinosonn\Documents\blackjack\blackjackforone\BlackJackForOne\obj\Debug\net10.0\BlackJackForOne.genruntimeconfig.cache
 c:\Users\Arnar Marinosonn\Documents\blackjack\blackjackforone\BlackJackForOne\obj\Debug\net10.0\ref\BlackJackForOne.dll
+C:\Users\Arnar Marinosonn\Documents\blackjack\blackjackforone\BlackJackForOne\obj\Debug\net10.0\BlackJackForOne.sourcelink.json

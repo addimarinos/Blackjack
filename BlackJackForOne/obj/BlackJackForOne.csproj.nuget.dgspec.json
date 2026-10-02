@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Users\\Arnar Marinosonn\\Documents\\blackjack\\blackjackforone\\BlackJackForOne\\BlackJackForOne.csproj": {}
+    "C:\\Users\\Arnar Marinosonn\\Documents\\blackjack\\blackjackforone\\BlackJackForOne\\BlackJackForOne.csproj": {}
   },
   "projects": {
-    "c:\\Users\\Arnar Marinosonn\\Documents\\blackjack\\blackjackforone\\BlackJackForOne\\BlackJackForOne.csproj": {
+    "C:\\Users\\Arnar Marinosonn\\Documents\\blackjack\\blackjackforone\\BlackJackForOne\\BlackJackForOne.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Users\\Arnar Marinosonn\\Documents\\blackjack\\blackjackforone\\BlackJackForOne\\BlackJackForOne.csproj",
+        "projectUniqueName": "C:\\Users\\Arnar Marinosonn\\Documents\\blackjack\\blackjackforone\\BlackJackForOne\\BlackJackForOne.csproj",
         "projectName": "BlackJackForOne",
-        "projectPath": "c:\\Users\\Arnar Marinosonn\\Documents\\blackjack\\blackjackforone\\BlackJackForOne\\BlackJackForOne.csproj",
+        "projectPath": "C:\\Users\\Arnar Marinosonn\\Documents\\blackjack\\blackjackforone\\BlackJackForOne\\BlackJackForOne.csproj",
         "packagesPath": "C:\\Users\\Arnar Marinosonn\\.nuget\\packages\\",
-        "outputPath": "c:\\Users\\Arnar Marinosonn\\Documents\\blackjack\\blackjackforone\\BlackJackForOne\\obj\\",
+        "outputPath": "C:\\Users\\Arnar Marinosonn\\Documents\\blackjack\\blackjackforone\\BlackJackForOne\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Arnar Marinosonn\\AppData\\Roaming\\NuGet\\NuGet.Config"
