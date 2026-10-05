@@ -9,11 +9,14 @@ namespace BlackJackForOne.Models
             Cards = [];
             foreach (Rank rank in Enum.GetValues(typeof(Rank)))
             {
-                // Add four cards of each rank to the deck
-                Cards.Add(new Card(rank));
-                Cards.Add(new Card(rank));
-                Cards.Add(new Card(rank));
-                Cards.Add(new Card(rank));
+                // Add four cards of each rank and suitto the deck
+                foreach (Suit suit in Enum.GetValues(typeof(Suit)))
+                {
+                    Cards.Add(new Card(rank, suit));
+                    Cards.Add(new Card(rank, suit));
+                    Cards.Add(new Card(rank, suit));
+                    Cards.Add(new Card(rank, suit));
+                }
             }
             // shuffle the deck after creating it, using Fischer-Yates shuffle
             this.Shuffle();

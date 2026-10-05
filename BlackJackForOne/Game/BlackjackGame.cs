@@ -22,7 +22,7 @@ public class BlackjackGame
 
     public bool PlaceYourBet(int bet)
     {
-        if (bet < playerBalance && bet >= minimumBet)
+        if (bet <= playerBalance && bet >= minimumBet)
         {
             currentBet = bet;
             UpdateBalance("Bet");
@@ -36,6 +36,8 @@ public class BlackjackGame
     {
         Dealer = new Hand(true);
         Player = new Hand();
+        //Card ace = new Card(Rank.Ace);
+        //Card king = new Card(Rank.King);
 
         Player.AddCard(_currentDeck.DealCard());
         Dealer.AddCard(_currentDeck.DealCard());

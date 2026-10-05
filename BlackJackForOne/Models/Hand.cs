@@ -53,5 +53,10 @@ namespace BlackJackForOne.Models
 
             return "House Wins"; */
         }
+
+        public List<Card> ShowHand()
+        {
+            return _cards;
+        }
     }
 }

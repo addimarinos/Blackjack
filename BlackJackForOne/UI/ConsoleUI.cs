@@ -1,4 +1,5 @@
 using BlackJackForOne.Game;
+using Spectre.Console;
 
 namespace BlackJackForOne.UI;
 
@@ -18,15 +19,23 @@ public class ConsoleUI
         _game = new BlackjackGame();
         BlackJackRules rules = new BlackJackRules();
 
+        // Clear console and start the game
+        Console.Clear();
         Console.WriteLine("Welcome to BlackJack for One!");
 
         DepositFunds();
-        Console.WriteLine("Your balance is: {0}", _game.playerBalance);
-
-        Console.WriteLine("When you are ready press <Enter> to start the game \nPress <Esc> to exit the game");
+        Console.WriteLine();
+        Console.WriteLine("Press <Esc> to exit the game - Press Any key to continue");
         while (Console.ReadKey().Key != ConsoleKey.Escape)
         {
-            while (Console.ReadKey().Key != ConsoleKey.Enter) {}
+
+            Console.Write("Loading...");
+            for (int i = 0; i < 10; i++)
+            {
+                Console.Write(".");
+                Thread.Sleep(500);
+            }
+
             Console.Clear();
             /* 1. place bet
              * 2. deal hands
@@ -51,10 +60,11 @@ public class ConsoleUI
                 _game.ResetForNextRound();
 
                 Console.WriteLine("Your balance is: {0}", _game.playerBalance);
-                Console.Write("minimum bet is {0} $ \nPlace your bet: ", _game.minimumBet);
+
                 bool validBet = false;
                 while (!validBet)
                 {
+                    Console.Write("minimum bet is {0} $ \nPlace your bet: ", _game.minimumBet);
                     var input = ReadNumberInput();
                     if (_game.PlaceYourBet(input))
                     {
@@ -64,30 +74,44 @@ public class ConsoleUI
                     }
                     else
                     {
-                        Console.WriteLine("invalid bet, minimum bet is {0} $", _game.minimumBet);
+                        if (input < _game.minimumBet)
+                            Console.WriteLine("invalid bet, minimum bet is {0} $", _game.minimumBet);
+                        else
+                            Console.WriteLine("Not enough funds for that bet, your balance is: {0} $",
+                                _game.playerBalance);
+                        Console.Write("Would you like to deposit more funds? press (1) yes, (2) no: ");
+                        if (ReadNumberInput() == 1) DepositFunds();
                     }
 
                 }
 
                 // Bet is in, lets deal cards and play
                 _game.DealHands();
-                Console.WriteLine("Your hand is: {0} \nYour current value is: {1}", _game.Player.ShowCards(), _game.Player.CurrentValue());
+                Console.WriteLine("Your hand is: {0} \nYour current value is: {1}", _game.Player.ShowCards(),
+                    _game.Player.CurrentValue());
                 Console.WriteLine("Dealers face up card is: {0}", _game.Dealer.ShowCards());
                 Console.WriteLine();
 
                 // Hit or Stay, skip if blackjack
                 bool hitting = _game.Player.CurrentValue() < 21;
-                if (!hitting) Console.WriteLine("You got a Blackjack!");
-                do
+                if (!hitting) Console.WriteLine("2 card Blackjack!");
+                while (hitting)
                 {
+                    if (_game.Player.CurrentValue() == 21)
+                    {
+                        Console.WriteLine("Blackjack!");
+                        break;
+                    }
                     var input = HitOrStayInput();
                     if (input is 1)
                     {
                         Console.WriteLine("You chose to Hit");
                         if (_game.Hit(false))
                         {
+                            Console.WriteLine();
                             Console.WriteLine("You Busted with: {0} \nYour final value is: {1}", _game.Player.ShowCards(), _game.Player.CurrentValue());
                             hitting = false;
+                            Thread.Sleep(3000);
                         }
                         else
                         {
@@ -102,7 +126,7 @@ public class ConsoleUI
                         Console.WriteLine("You chose to Stay");
                         hitting = false;
                     }
-                } while (hitting);
+                } 
 
                 Console.WriteLine();
                 
@@ -131,6 +155,7 @@ public class ConsoleUI
                 }
                 Console.WriteLine();
                 Console.WriteLine("Dealers final hand value is: {0} \nYour final hand value: {1}", _game.Dealer.CurrentValue(), _game.Player.CurrentValue());
+                Console.WriteLine();
                 switch (rules.WhoWon(_game.Dealer, _game.Player))
                 {
                     case "player":
@@ -145,7 +170,7 @@ public class ConsoleUI
                         break;
                     case "tie":
                         Console.WriteLine("Result is a Tie");
-                        Console.WriteLine("You get your bet back of value: {0}", _game.currentBet);
+                        Console.WriteLine("You get your bet back of value: {0} $", _game.currentBet);
                         Console.WriteLine("Previous balance {0} $", _game.playerBalance);
                         _game.UpdateBalance("Tie");
                         break;
@@ -156,12 +181,12 @@ public class ConsoleUI
                 Console.Write("Would you like to play again? press (1) yes, (2) no: ");
 
                 if (ReadNumberInput() == 2) break;
-                if (_game.playerBalance == 0) DepositFunds();
+                if (_game.playerBalance < _game.minimumBet) DepositFunds();
             }
 
             IsPlaying = false;
-            Console.WriteLine("You have stopped playing");
-            Console.WriteLine("Your balance is:{0}", _game.playerBalance);
+            Console.WriteLine("You have decided to stop playing");
+            Console.WriteLine("Your balance is:{0} $", _game.playerBalance);
             Console.WriteLine("Press <Esc> to exit");
             
         }
@@ -174,14 +199,13 @@ public class ConsoleUI
         Console.Write("Your input: ");
         do
         {
-            if (int.TryParse(Console.ReadLine(), out b) && b is > 0 and < 1000000) break;
+            if (int.TryParse(Console.ReadLine(), out b) && b is > 0 and <= 1000000) break;
+            Console.WriteLine("Minimum balance needed is 5 $, maximum deposit is 1.000.000 $");
             Console.WriteLine("Please enter a valid number: ");
         } while (true);
 
         _game?.UpdateBalance("Deposit", b);
-
-        // TODO: select number of decks to play with then display the win ratio
-
+        Console.WriteLine("Your balance is: {0} $", _game?.playerBalance);
     }
 
     private int ReadNumberInput()
@@ -201,7 +225,7 @@ public class ConsoleUI
     {
         int i;
         Console.WriteLine("Would you like to Hit or Stay");
-        Console.Write("Press 1 for Hit | Press 2 for Stay:");
+        Console.Write("Press 1 for Hit | Press 2 for Stay: ");
         do
         {
             if (int.TryParse(Console.ReadLine(), out i) && i is 1 or 2) break;
