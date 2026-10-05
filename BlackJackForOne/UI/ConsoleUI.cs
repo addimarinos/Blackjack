@@ -1,5 +1,5 @@
 using BlackJackForOne.Game;
-using Spectre.Console;
+
 
 namespace BlackJackForOne.UI;
 
@@ -186,7 +186,7 @@ public class ConsoleUI
 
             IsPlaying = false;
             Console.WriteLine("You have decided to stop playing");
-            Console.WriteLine("Your balance is:{0} $", _game.playerBalance);
+            Console.WriteLine("Your balance is: {0} $", _game.playerBalance);
             Console.WriteLine("Press <Esc> to exit");
             
         }
