@@ -2,10 +2,11 @@ namespace BlackJackForOne.Models
 {
     public class Deck
     {
-        public readonly List<Card> Cards = new List<Card>();
+        public readonly List<Card> Cards;
 
         public Deck() // simple improvement - param for number of decks: int num decks then loop that in construct
         {
+            Cards = [];
             foreach (Rank rank in Enum.GetValues(typeof(Rank)))
             {
                 // Add four cards of each rank to the deck
@@ -18,10 +19,10 @@ namespace BlackJackForOne.Models
             this.Shuffle();
         }
 
-        public Card? DealCard()
+        public Card DealCard()
         {
             // if deck is empty return null
-            if (Cards.Count == 0) return null;
+            //if (Cards.Count == 0) return 0;
 
             // otherwise deal top card
             Card card = Cards.First();
@@ -38,6 +39,11 @@ namespace BlackJackForOne.Models
                 int index = r.Next(i, Cards.Count);
                 (Cards[i], Cards[index]) = (Cards[index], Cards[i]);
             }
+        }
+
+        public int CurrentDeckSize()
+        {
+            return Cards.Count;
         }
     }
 }

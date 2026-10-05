@@ -4,9 +4,11 @@ namespace BlackJackForOne.Game;
 public class BlackJackRules
 {
 
-    public int minBet = 5;
-    private  string WhoWon(Hand dealer, Hand player)
+    public int MinBet = 5;
+    public string WhoWon(Hand dealer, Hand player)
     {
+        if (IsBusted(player)) return "dealer";
+        if (IsBusted(dealer)) return "player";
         if (dealer.CurrentValue() == player.CurrentValue()) return "tie";
         return dealer.CurrentValue() > player.CurrentValue() ? "dealer" : "player";
     }
@@ -18,6 +20,6 @@ public class BlackJackRules
 
     public bool checkBalance(int balance)
     {
-        return balance > minBet;
+        return balance > MinBet;
     }
 }

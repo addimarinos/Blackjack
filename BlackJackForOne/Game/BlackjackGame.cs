@@ -4,9 +4,10 @@ namespace BlackJackForOne.Game;
 
 public class BlackjackGame
 {
-    private Deck? _currentDeck;
-    public Hand? dealer;
-    public Hand? player;
+    private Deck _currentDeck;
+    public int InitDeckSize;
+    public Hand Dealer;
+    public Hand Player;
     public int currentBet;
     public int playerBalance;
     public int minimumBet = 5;
@@ -14,13 +15,9 @@ public class BlackjackGame
     public BlackjackGame()
     {
         _currentDeck = new Deck();
-        dealer = new Hand(true);
-        player = new Hand();
-    }
-
-    public void PlayRound()
-    {
-        
+        InitDeckSize = _currentDeck.Cards.Count;
+        Dealer = new Hand(true);
+        Player = new Hand();
     }
 
     public bool PlaceYourBet(int bet)
@@ -28,7 +25,7 @@ public class BlackjackGame
         if (bet < playerBalance && bet >= minimumBet)
         {
             currentBet = bet;
-            playerBalance -= bet;
+            UpdateBalance("Bet");
             return true;
         }
 
@@ -37,35 +34,62 @@ public class BlackjackGame
     }
     public void DealHands()
     {
-        dealer = new Hand(true);
-        player = new Hand();
+        Dealer = new Hand(true);
+        Player = new Hand();
 
-        player.AddCard(_currentDeck?.DealCard());
-        dealer.AddCard(_currentDeck?.DealCard());
-        player.AddCard(_currentDeck?.DealCard());
-        dealer.AddCard(_currentDeck?.DealCard());
+        Player.AddCard(_currentDeck.DealCard());
+        Dealer.AddCard(_currentDeck.DealCard());
+        Player.AddCard(_currentDeck.DealCard());
+        Dealer.AddCard(_currentDeck.DealCard());
     }
 
     public bool Hit(bool isdealer)
     {
         if (isdealer)
         {
-            dealer?.AddCard(_currentDeck?.DealCard());
-            return dealer.HasBusted();
+            Dealer.AddCard(_currentDeck.DealCard());
+            return Dealer.HasBusted();
         }
         
-        player?.AddCard(_currentDeck?.DealCard());
-        return player.HasBusted();
+        Player.AddCard(_currentDeck.DealCard());
+        return Player.HasBusted();
         
     }
 
-    public void Stay()
+    public void UpdateBalance(string cond, int deposit = 0)
     {
-        
+        switch (cond)
+        {
+            case "Win":
+                playerBalance += currentBet * 2;
+                break;
+            case "Tie":
+                playerBalance += currentBet;
+                break;
+            case "Bet":
+                playerBalance -= currentBet;
+                break;
+            case "Deposit":
+                playerBalance += deposit;
+                break;
+        }
     }
 
-    public void UpdateBalance(int b)
+    public void ResetForNextRound()
     {
-        playerBalance = b;
+        currentBet = 0;
+
+        // shuffle new deck if 50% of cards have been used
+        if(CurrentDeckSize() <= InitDeckSize/2)
+        {
+            _currentDeck = new Deck();
+            Console.WriteLine("Deck has been reset and shuffled");
+        }
+
+    }
+
+    public int CurrentDeckSize()
+    {
+        return _currentDeck.CurrentDeckSize();
     }
 }
