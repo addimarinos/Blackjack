@@ -13,9 +13,6 @@ namespace BlackJackForOne.Models
                 foreach (Suit suit in Enum.GetValues(typeof(Suit)))
                 {
                     Cards.Add(new Card(rank, suit));
-                    Cards.Add(new Card(rank, suit));
-                    Cards.Add(new Card(rank, suit));
-                    Cards.Add(new Card(rank, suit));
                 }
             }
             // shuffle the deck after creating it, using Fischer-Yates shuffle
