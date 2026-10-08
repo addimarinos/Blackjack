@@ -30,7 +30,6 @@ public class BlackjackGame
         
         Player.Bet = bet;
         CurrentBet = bet;
-        Console.WriteLine("Place your bet, Player.Bet is: {0}", Player.Bet);
         UpdateBalance("Bet");
         return true;
     }
@@ -38,16 +37,12 @@ public class BlackjackGame
 
     public void DealHands()
     {
-        Dealer.Cards.Clear();
-        Player.Cards.Clear();
-        Card eight = new Card(Rank.Eight, Suit.Clubs);
+        //Card eight = new Card(Rank.Eight, Suit.Clubs);
         //Card king = new Card(Rank.King);
-        Player.AddCard(eight);
-        Player.AddCard(eight);
         
-        //Player.AddCard(_currentDeck.DealCard());
+        Player.AddCard(_currentDeck.DealCard());
         Dealer.AddCard(_currentDeck.DealCard());
-        //Player.AddCard(_currentDeck.DealCard());
+        Player.AddCard(_currentDeck.DealCard());
         Dealer.AddCard(_currentDeck.DealCard());
     }
 
@@ -91,10 +86,13 @@ public class BlackjackGame
         Player.HasSplit = true;
     }
 
+    public bool CanDoubleDown(Hand hand)
+    {
+        return PlayerBalance >= hand.Bet;
+    }
     public void DoubleDown(Hand hand)
     {
         hand.AddCard(_currentDeck.DealCard());
-        Console.WriteLine("hand.bet is: {0}", hand.Bet);
         PlayerBalance -= hand.Bet;
         hand.Bet += hand.Bet;
     }
@@ -140,20 +138,26 @@ public class BlackjackGame
     {
         return CurrentHandValue(hand) > 21;
     }
+    public bool HasBlackjack(Hand hand)
+    {
+        return CurrentHandValue(hand) == 21;
+    }
 
-    public void ResetForNextRound()
+    public bool ResetForNextRound()
     {
         CurrentBet = 0;
+        Dealer.Cards.Clear();
+        Player.Cards.Clear();
+        Player.Bet = 0;
         Player.HasSplit = false;
         Player.MultHands.Clear();
         // shuffle new deck if 50% of cards have been used
         if(CurrentDeckSize() <= InitDeckSize/2)
         {
             _currentDeck = new Deck();
-            Console.WriteLine("Deck has been reset and shuffled");
+            return true; 
         }
-
-
+        return false;
     }
 
     public int CurrentDeckSize()

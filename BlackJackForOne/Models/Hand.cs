@@ -7,7 +7,8 @@ namespace BlackJackForOne.Models
         public List<Hand> MultHands = [];
         public bool IsDealer = isDealer;
         public bool HasSplit = false;
-        public int Bet;
+        public int Bet { get; set; }
+        public int Balance { get; set; }
         
         public void AddCard(Card? card)
         {
