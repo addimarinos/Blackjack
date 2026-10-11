@@ -1,5 +1,4 @@
 ﻿using BlackJackForOne.UI;
-using Spectre.Console;
 
 namespace BlackJackForOne;
 
@@ -8,7 +7,7 @@ internal class Program
     static void Main ()
     {
         
-        ConsoleUi console = new ConsoleUi();
+        var console = new ConsoleUi();
         console.Run();
 
         Console.WriteLine();

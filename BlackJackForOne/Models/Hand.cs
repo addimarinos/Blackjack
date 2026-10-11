@@ -6,6 +6,7 @@ namespace BlackJackForOne.Models
 
         public List<Hand> MultHands = [];
         public bool IsDealer = isDealer;
+        public bool Blackjack = false; // only true if 2 card blackjack;
         public bool HasSplit = false;
         public int Bet { get; set; }
         public int Balance { get; set; }
@@ -32,6 +33,11 @@ namespace BlackJackForOne.Models
                 }
             }
             return val;
+        }
+
+        public void CheckBlackjack()
+        {
+            Blackjack = CurrentValue() == 21 && Cards.Count == 2;
         }
 
         public string ShowCards(bool showDealerHand = false)

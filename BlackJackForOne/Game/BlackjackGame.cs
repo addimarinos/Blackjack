@@ -6,13 +6,12 @@ public class BlackjackGame
 {
     private Deck _currentDeck;
     public int InitDeckSize;
-    public Hand Dealer;
-    public Hand Player;
+    public readonly Hand Dealer;
+    public Player Player;
     public int splitBet;
     public int CurrentBet;
     public int PlayerBalance;
     public int MinimumBet = 5;
-    public List<Hand> PlayerSplit;
 
 
     public BlackjackGame()
@@ -20,13 +19,12 @@ public class BlackjackGame
         _currentDeck = new Deck();
         InitDeckSize = _currentDeck.Cards.Count;
         Dealer = new Hand(true);
-        Player = new Hand();
-        PlayerSplit = [];
+        Player = new Player("Bob");
     }
 
     public bool PlaceYourBet(int bet)
     {
-        if (bet > PlayerBalance || bet < MinimumBet) return false;
+        if (bet > Player.Balance || bet < MinimumBet) return false;
         
         Player.Bet = bet;
         CurrentBet = bet;
@@ -37,25 +35,34 @@ public class BlackjackGame
 
     public void DealHands()
     {
-        //Card eight = new Card(Rank.Eight, Suit.Clubs);
+        var eight = new Card(Rank.Eight, Suit.Clubs);
         //Card king = new Card(Rank.King);
-        
-        Player.AddCard(_currentDeck.DealCard());
+        var playerHand = new Hand();
+
+        // Testing split
+        playerHand.AddCard(eight);
+        playerHand.AddCard(eight);
+
+        // Multiplayer: loop through table size, add cards 
+        //playerHand.AddCard(_currentDeck.DealCard());
         Dealer.AddCard(_currentDeck.DealCard());
-        Player.AddCard(_currentDeck.DealCard());
+        //playerHand.AddCard(_currentDeck.DealCard());
         Dealer.AddCard(_currentDeck.DealCard());
+
+        playerHand.Bet = Player.Bet;
+        Player.Hands.Add(playerHand);
     }
 
-    public bool Hit(bool isdealer)
+    public bool Hit(Hand hand, bool isdealer)
     {
         if (isdealer)
         {
             Dealer.AddCard(_currentDeck.DealCard());
             return Dealer.HasBusted();
         }
-        
-        Player.AddCard(_currentDeck.DealCard());
-        return Player.HasBusted();
+        hand.AddCard(_currentDeck.DealCard());
+
+        return IsBusted(hand);
     }
 
     public void NewHit(Hand hand)
@@ -63,10 +70,9 @@ public class BlackjackGame
         hand.AddCard(_currentDeck.DealCard());
     }
 
-    public void Split()
+    public void Split(Player player)
     {
-        
-        var oldHand = Player.SplitHand();
+        var oldHand = player.Hands.First().SplitHand();
         var hand1 = new Hand();
         var hand2 = new Hand();
 
@@ -78,22 +84,29 @@ public class BlackjackGame
 
         hand1.Bet = Player.Bet;
         hand2.Bet = Player.Bet;
+        Player.Balance -= Player.Bet;
+        Player.Bet += Player.Bet;
+        
 
-        Player.MultHands.Add(hand1);
-        Player.MultHands.Add(hand2);
-        PlayerBalance -= Player.Bet;
+        Player.Hands.Clear();
+        Player.Hands.Add(hand1);
+        Player.Hands.Add(hand2);
         
         Player.HasSplit = true;
     }
 
-    public bool CanDoubleDown(Hand hand)
+    public bool CanDoubleDown(Player player, Hand hand)
     {
-        return PlayerBalance >= hand.Bet;
+        if (hand.Cards.Count > 2) return false;
+        if (player.Balance < hand.Bet) return false;
+        
+        return true;
     }
     public void DoubleDown(Hand hand)
     {
         hand.AddCard(_currentDeck.DealCard());
-        PlayerBalance -= hand.Bet;
+        Player.Balance -= hand.Bet;
+        Player.Bet += hand.Bet;
         hand.Bet += hand.Bet;
     }
 
@@ -102,16 +115,16 @@ public class BlackjackGame
         switch (cond)
         {
             case "Win":
-                PlayerBalance += deposit*2;
+                Player.Balance += deposit*2;
                 break;
             case "Tie":
-                PlayerBalance += deposit;
+                Player.Balance += deposit;
                 break;
             case "Bet":
-                PlayerBalance -= CurrentBet;
+                Player.Balance -= Player.Bet;
                 break;
             case "Deposit":
-                PlayerBalance += deposit;
+                Player.Balance += deposit;
                 break;
         }
     }
@@ -140,17 +153,17 @@ public class BlackjackGame
     }
     public bool HasBlackjack(Hand hand)
     {
-        return CurrentHandValue(hand) == 21;
+        return CurrentHandValue(hand) == 21;// && hand.Cards.Count == 2;
     }
 
     public bool ResetForNextRound()
     {
         CurrentBet = 0;
         Dealer.Cards.Clear();
-        Player.Cards.Clear();
+        Player.Hands.Clear();
         Player.Bet = 0;
         Player.HasSplit = false;
-        Player.MultHands.Clear();
+        
         // shuffle new deck if 50% of cards have been used
         if(CurrentDeckSize() <= InitDeckSize/2)
         {
@@ -163,5 +176,28 @@ public class BlackjackGame
     public int CurrentDeckSize()
     {
         return _currentDeck.CurrentDeckSize();
+    }
+
+    public string PrintHandsAndValue()
+    {
+        var cards = "";
+        var output = "";
+        var hands = Player.Hands;
+        var counter = 1;
+        foreach (var hand in hands)
+        {
+            foreach (var card in hand.Cards)
+            {
+                cards += card.Rank.ToString() + " ";
+            }
+            output += cards;
+            output += ", with value: " + CurrentHandValue(hand).ToString();
+            if (counter == 2) output += "\nNext Hand is: ";
+            counter += 1;
+        }
+        
+        var values = " With Value: " + CurrentHandValue(hands.First()).ToString();
+
+        return cards + values;
     }
 }

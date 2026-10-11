@@ -1,5 +1,6 @@
 using BlackJackForOne.Application;
 using BlackJackForOne.Game;
+using BlackJackForOne.Models;
 
 
 namespace BlackJackForOne.UI;
@@ -63,15 +64,14 @@ public class ConsoleUi
                 //if (_game.ResetForNextRound()) Console.WriteLine("Deck has been reset and shuffled");
                 if (session.BeginRound()) Console.WriteLine("Deck has been reset and shuffled");
 
-                Console.WriteLine("Your balance is: {0} $", _game.PlayerBalance);
+                Console.WriteLine("Your balance is: {0} $", _game.Player.Balance);
 
-                var roundStarted = false;
                 
-                while(!roundStarted)
+                while(session.Phase is GamePhases.AwaitingBet)
                 {
-                    var bet = PlayerOptions("Minimum bet is 5 $ \nPlace your bet: ", _game.PlayerBalance, true);
-                    roundStarted = session.TryStartRound(bet);
-                    if (roundStarted)
+                    var bet = PlayerOptions("Minimum bet is 5 $ \nPlace your bet: ", _game.Player.Balance, true);
+                    
+                    if (session.TryStartRound(bet))
                     {
                         Console.WriteLine($"\nYour bet is: {bet}");
                     }
@@ -81,52 +81,116 @@ public class ConsoleUi
                     }
                     else
                     {
-                        Console.WriteLine($"Not enough funds for that bet, your balance is {_game.PlayerBalance}");
+                        Console.WriteLine($"Not enough funds for that bet, your balance is {_game.Player.Balance}");
                     }
                 }
                 
-                Console.WriteLine("Your hand is: {0} \nYour current value is: {1}", _game.Player.ShowCards(),
-                    _game.Player.CurrentValue());
-                Console.WriteLine("Dealers face up card is: {0}", _game.Dealer.ShowCards());
-                Console.WriteLine();
-
+                while (session.Phase is GamePhases.DealAllHands)
+                {
+                    
+                    switch (session.TryDealAllHands())
+                    {
+                        case Replies.InstantBlackjack:
+                            Console.WriteLine("Blackjack!!!  Let's see what the dealer has...");
+                            break;
+                        case Replies.Empty:
+                            Console.WriteLine("Hands have been dealt.");
+                            break;
+                    }
+                }
+                
                 while (session.Phase is GamePhases.PlayerTurn)
                 {
-                    var options = PlayerOptions("Press 1 for Hit | Press 2 for Stay | Press 3 for Double Down | Press 4 for Split: ", 4, true);
-                    var reply = session.PlayerChoice(options);
-                    switch (reply.Item1)
+                    Console.WriteLine();                
+                    Console.WriteLine("Dealers face up card is: {0}", _game.Dealer.ShowCards());
+                    
+                    // check up on thiiiiiis
+                    var currentHand = session.GetActiveHand();
+                    var currentCards = String.Join(" ", currentHand.Cards);
+                    Console.WriteLine($"Current hand is: {currentCards} | Value: {currentHand.Value}");
+
+                    Console.WriteLine();
+                    var options = _game.Player.HasSplit ?
+                        PlayerOptions("Press 1 for Hit | Press 2 for Stay | Press 3 for Double Down: ", 3, true):
+                        PlayerOptions("Press 1 for Hit | Press 2 for Stay | Press 3 for Double Down | Press 4 for Split: ", 4, true);
+                    
+                    //PlayerOptions("Press 1 for Hit | Press 2 for Stay | Press 3 for Double Down | Press 4 for Split: ", 4, true);var options = PlayerOptions("Press 1 for Hit | Press 2 for Stay | Press 3 for Double Down | Press 4 for Split: ", 4, true);
+                    var result = session.PlayerChoice(options);
+                    var states = result.HandStates;
+                    switch (result.Reply)
                     {
-                        case "Hit":
+                        case Replies.Hit:
                             Console.WriteLine("Hit");
-                            Console.WriteLine($"Your hand is {session.Game.Player.ShowCards()}");
-                            Console.WriteLine($"Hand value is: {session.Game.Player.CurrentValue()}");
+                            Console.WriteLine($"New hand: {String.Join(" ", states.First().Cards)} | Value: {states.First().Value}");
+                            if (states.First().Busted) Console.WriteLine("You busted! Lets move on.");
+                            if (states.First().Value == 21) Console.WriteLine("21! Lets move on.");
+                            Console.WriteLine();
                             break;
-                        case "Stay":
-                            Console.WriteLine("Stay");
+                        case Replies.Stay:
+                            Console.WriteLine("You chose to Stay");
                             break;
-                        case "DoubleDown":
+                        case Replies.DoubleDown:
                             Console.WriteLine("Double Down");
-                            Console.WriteLine($"New be is: {session.Game.Player.Bet}");
-                            Console.WriteLine($"Your hand is {session.Game.Player.ShowCards()}");
-                            Console.WriteLine($"Hand value is: {session.Game.Player.CurrentValue()}");
+                            Console.WriteLine($"New bet is: {_game.Player.Bet}");
+                            Console.WriteLine($"New Hand is: {String.Join(" ", states.First().Cards)} | Value: {states.First().Value}");
                             break;
-                        case "Split":
+                        case Replies.Split:
+                            Console.WriteLine("You split your hand, here are your new hands:");
+                            var hand1 = states.First();
+                            var hand2 = states.Last();
+                            var print1 = String.Join(" ", hand1.Cards);
+                            var print2 = String.Join(" ", hand2.Cards);
+                            Console.WriteLine($"First hand: {print1} | Value: {hand1.Value}");
+                            Console.WriteLine($"Second hand: {print2} | Value: {hand2.Value}");
+                            Console.WriteLine("Start playing the first hand then move onto the next one");
                             break;
-                        case "Bust":
+                        case Replies.InvalidSplit:
+                            Console.WriteLine("Can't split this hand");
                             break;
-                        case "Blackjack":
+                        case Replies.InvalidDoubleDown:
+                            Console.WriteLine("Can't double down on this hand");
                             break;
+                    }
+                    if (result.BlackjackInfo != Replies.Empty)
+                    {
+                        switch (result.BlackjackInfo)
+                        {
+                            case Replies.SplitFirstHandBlackjack:
+                                Console.WriteLine("First hand is Blackjack! Let's move onto the next one.");
+                                break;
+                            case Replies.SplitSecondHandBlackjack:
+                                Console.WriteLine("Second hand is Blackjack! Let's see what the Dealer has.");
+                            // send second hand state
+                                break;
+                            case Replies.SplitBothBlackjack:
+                                Console.WriteLine("Whoa! double Blackjack! Let's see what the Dealer has.");
+                                break; 
+                        }
                     }
 
                 }
                 Console.WriteLine("Choice is done");
+
+                // Dealer phase
+                while(session.Phase is GamePhases.DealerTurn)
+                {
+                    
+                }
+
+
+
+
+
+
+
+
                 break;
                 // Hit or Stay, skip if blackjack
-                bool hitting = _game.Player.CurrentValue() < 21;
+                bool hitting = _game.Player.HandValue < 21;
                 if (!hitting) Console.WriteLine("2 card Blackjack!");
                 while (hitting)
                 {
-                    if (_game.Player.CurrentValue() == 21)
+                    if (_game.Player.HandValue == 21)
                     {
                         Console.WriteLine("Blackjack!");
                         break;
@@ -143,11 +207,11 @@ public class ConsoleUi
                     {
                         Console.WriteLine();
                         Console.WriteLine("You split your hand, here are your new hands:");
-                        Console.WriteLine("First hand: {0}", _game.Player.MultHands.First().ShowCards());
-                        Console.WriteLine("Second hand: {0}", _game.Player.MultHands.Last().ShowCards());
+                        Console.WriteLine("First hand: {0}", _game.Player.Hands.First().ShowCards());
+                        Console.WriteLine("Second hand: {0}", _game.Player.Hands.Last().ShowCards());
                         Console.WriteLine("Start playing the first hand then move onto the next one");
                         Console.WriteLine();
-                        foreach (var hand in _game.Player.MultHands)
+                        foreach (var hand in _game.Player.Hands)
                         {
                             bool playing = hand.CurrentValue() < 21;
                             if (!playing) Console.WriteLine("Blackjack!");
@@ -180,8 +244,8 @@ public class ConsoleUi
                                             Console.WriteLine();
                                         }
                                         break;
-                                    case 2:
-                                        if (!_game.CanDoubleDown(hand))
+                                    /* case 2:
+                                        if (!_game.CanDoubleDown())
                                         {
                                             Console.WriteLine("Not enough funds to Double Down");
                                             Console.WriteLine();
@@ -192,7 +256,7 @@ public class ConsoleUi
                                         Console.WriteLine("You doubled down \nNew bet is: {0} \nHand is: {1} \nHand value is: {2}", hand.Bet, hand.ShowCards(), hand.CurrentValue());
                                         playing = false;
                                         hitting = false;
-                                        break;
+                                        break; */
                                     case 3:
                                         Console.WriteLine("Stay");
                                         playing = false;
@@ -211,17 +275,17 @@ public class ConsoleUi
                         {
                             case 1:
                                 Console.WriteLine("Hit");
-                                _game.NewHit(_game.Player);
-                                if (_game.IsBusted(_game.Player))
+                                _game.NewHit(_game.Player.Hands.First());
+                                if (_game.IsBusted(_game.Player.Hands.First()))
                                 {
                                     Console.WriteLine();
-                                    Console.WriteLine("You Busted with: {0} \nYour final value is: {1}", _game.Player.ShowCards(), _game.Player.CurrentValue());
+                                    //Console.WriteLine("You Busted with: {0} \nYour final value is: {1}", _game.Player.ShowCards(), _game.Player.CurrentValue());
                                     hitting = false;
                                     Thread.Sleep(3000);
                                 }
                                 else
                                 {
-                                    Console.WriteLine("Your new hand is: {0} \nYour current value is: {1}", _game.Player.ShowCards(), _game.Player.CurrentValue());
+                                    //Console.WriteLine("Your new hand is: {0} \nYour current value is: {1}", _game.Player.ShowCards(), _game.Player.CurrentValue());
                                     Console.WriteLine("Dealers face up card is: {0}", _game.Dealer.ShowCards());
                                     Console.WriteLine();
                                 }
@@ -234,22 +298,22 @@ public class ConsoleUi
                                 }
                                 else
                                 {
-                                    _game.Split();
+                                    _game.Split(_game.Player);
                                     Console.WriteLine("Split");
                                 }
                                 break;
-                            case 3:
-                                if (!_game.CanDoubleDown(_game.Player))
+                            /* case 3:
+                                if (!_game.CanDoubleDown())
                                 {
                                     Console.WriteLine("Not enough funds to Double Down");
                                     Console.WriteLine();
                                     break;
                                 }
                                 Console.WriteLine("Double Down");
-                                _game.DoubleDown(_game.Player);
-                                Console.WriteLine("You doubled down \nNew bet is: {0} \nHand is: {1} \nHand value is: {2}", _game.Player.Bet, _game.Player.ShowCards(), _game.Player.CurrentValue());
+                                //_game.DoubleDown(_game.Player);
+                                //Console.WriteLine("You doubled down \nNew bet is: {0} \nHand is: {1} \nHand value is: {2}", _game.Player.Bet, _game.Player.ShowCards(), _game.Player.CurrentValue());
                                 hitting = false;
-                                break;
+                                break; */
                             case 4:
                                 Console.WriteLine("Stay");
                                 hitting = false;
@@ -260,12 +324,12 @@ public class ConsoleUi
 
                 Console.WriteLine();
                 
-                if (!rules.IsBusted(_game.Player))
+                if (!rules.IsBusted(_game.Player.Hands.First()))
                 {
-                    var playerBestScore = _game.Player.CurrentValue();
-                    if (_game.Player.HasSplit && !_game.Player.MultHands.First().HasBusted() && !_game.Player.MultHands.Last().HasBusted())
+                    var playerBestScore = 20;// _game.Player.CurrentValue();
+                    if (_game.Player.HasSplit && !_game.Player.Hands.First().HasBusted() && !_game.Player.Hands.Last().HasBusted())
                     {
-                        var hands = _game.Player.MultHands;
+                        var hands = _game.Player.Hands;
                         var hand1 = hands.First();
                         var hand2 = hands.Last();
                         Console.WriteLine("First hand is: {0}, with value {1}", hand1.ShowCards(), hand1.CurrentValue());
@@ -291,7 +355,7 @@ public class ConsoleUi
                         Console.WriteLine("best score is: {0}", playerBestScore);
 
                     }
-                    else Console.WriteLine("Your hand value is: {0}", _game.Player.ScoringResult().Item1);
+                    //else Console.WriteLine("Your hand value is: {0}", _game.Player.ScoringResult().Item1);
 
                     Console.WriteLine("Dealers hand is: {0} \nDealers value is: {1}", _game.Dealer.ShowCards(true), _game.Dealer.CurrentValue());
                     Console.WriteLine();
@@ -301,7 +365,7 @@ public class ConsoleUi
                         Thread.Sleep(5000);
                         Console.WriteLine("Dealer chose to Hit");
                         // deal a card, checks if busted
-                        if (_game.Hit(true))
+                        if (_game.CurrentHandValue(_game.Dealer) > 21)
                         {
                             Console.WriteLine("Dealer Busted with: {0}", _game.Dealer.ShowCards(true));
                             break;
@@ -317,7 +381,7 @@ public class ConsoleUi
                 if (_game.Player.HasSplit)
                 {
                     Console.WriteLine("Result for both hands, because you split");
-                    foreach (var hand in _game.Player.MultHands)
+                    foreach (var hand in _game.Player.Hands)
                     {
                         var result = hand.ScoringResult();
                         Console.WriteLine();
@@ -345,9 +409,9 @@ public class ConsoleUi
                 }
                 else
                 {
-                    Console.WriteLine("Your final hand value: {0}", _game.Player.CurrentValue());
+                    Console.WriteLine("Your final hand value: {0}", _game.CurrentHandValue(_game.Player.Hands.First()));
                     Console.WriteLine();
-                    switch (rules.WhoWon(_game.Dealer, _game.Player))
+                    switch (rules.WhoWon(_game.Dealer, _game.Player.Hands.First()))
                     {
                         case "player":
                             Console.WriteLine("You Won!");
@@ -396,7 +460,7 @@ public class ConsoleUi
         } while (true);
 
         _game?.UpdateBalance("Deposit", b);
-        Console.WriteLine("Your balance is: {0} $", _game?.PlayerBalance);
+        Console.WriteLine("Your balance is: {0} $", _game?.Player.Balance);
     }
 
     private int PlayerOptions(string output, int max, bool numInput = false)

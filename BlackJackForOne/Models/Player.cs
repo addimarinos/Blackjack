@@ -8,6 +8,7 @@ namespace BlackJackForOne.Models
         public int Balance { get; set; }
         public int Bet { get; set; }
         public bool HasSplit { get; set; } = false;
+        public int HandValue;
 
         public void SplitHand(Card newcard1, Card newcard2)
         {
@@ -26,5 +27,15 @@ namespace BlackJackForOne.Models
             Hands.Add(newHand2);
 
         }
+
+        public bool CanSplit()
+    {
+        if (Hands.Count > 1) return false;
+        var hand = Hands.First().Cards;
+        if (hand.Count != 2) return false;
+        if (hand.First().Rank != hand.Last().Rank) return false;
+        if (Balance < Bet) return false;
+        return true;
+    }
     }
 }
