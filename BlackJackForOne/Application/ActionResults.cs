@@ -16,3 +16,13 @@ public sealed record Result(
     List<HandState> HandStates
 ); 
 
+public sealed record DealerResult(
+    ReadOnlyCollection<string> Cards,
+    Replies Reply,
+    int Value
+);
+public sealed record WinnerResult(
+    HandState Player,
+    DealerResult Dealer,
+    Replies WinCondition
+);

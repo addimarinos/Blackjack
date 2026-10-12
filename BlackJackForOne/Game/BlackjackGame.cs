@@ -35,18 +35,18 @@ public class BlackjackGame
 
     public void DealHands()
     {
-        var eight = new Card(Rank.Eight, Suit.Clubs);
+        //var eight = new Card(Rank.Eight, Suit.Clubs);
         //Card king = new Card(Rank.King);
         var playerHand = new Hand();
 
         // Testing split
-        playerHand.AddCard(eight);
-        playerHand.AddCard(eight);
+        // playerHand.AddCard(eight);
+        // playerHand.AddCard(eight);
 
         // Multiplayer: loop through table size, add cards 
-        //playerHand.AddCard(_currentDeck.DealCard());
+        playerHand.AddCard(_currentDeck.DealCard());
         Dealer.AddCard(_currentDeck.DealCard());
-        //playerHand.AddCard(_currentDeck.DealCard());
+        playerHand.AddCard(_currentDeck.DealCard());
         Dealer.AddCard(_currentDeck.DealCard());
 
         playerHand.Bet = Player.Bet;
@@ -176,28 +176,5 @@ public class BlackjackGame
     public int CurrentDeckSize()
     {
         return _currentDeck.CurrentDeckSize();
-    }
-
-    public string PrintHandsAndValue()
-    {
-        var cards = "";
-        var output = "";
-        var hands = Player.Hands;
-        var counter = 1;
-        foreach (var hand in hands)
-        {
-            foreach (var card in hand.Cards)
-            {
-                cards += card.Rank.ToString() + " ";
-            }
-            output += cards;
-            output += ", with value: " + CurrentHandValue(hand).ToString();
-            if (counter == 2) output += "\nNext Hand is: ";
-            counter += 1;
-        }
-        
-        var values = " With Value: " + CurrentHandValue(hands.First()).ToString();
-
-        return cards + values;
     }
 }

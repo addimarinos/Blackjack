@@ -1,5 +1,7 @@
 
 using System.Collections.ObjectModel;
+using System.Net.NetworkInformation;
+using System.Runtime.CompilerServices;
 using BlackJackForOne.Game;
 
 namespace BlackJackForOne.Application
@@ -11,6 +13,7 @@ namespace BlackJackForOne.Application
         DealAllHands,
         PlayerTurn,
         DealerTurn,
+        Payout,
         RoundEnd
     }
 
@@ -26,7 +29,14 @@ namespace BlackJackForOne.Application
         InstantBlackjack,
         SplitFirstHandBlackjack,
         SplitSecondHandBlackjack,
-        SplitBothBlackjack
+        SplitBothBlackjack,
+        DealerBlackjack,
+        DealerBusted,
+        DealerWin,
+        DealerLose,
+        PlayerWin,
+        Tie
+
     }
     public class GameSession
     {
@@ -34,7 +44,8 @@ namespace BlackJackForOne.Application
 
         public GamePhases Phase { get; private set; } = GamePhases.RoundStart;
 
-        private int _activeHand = 0;
+        private int _activeHand;
+        private int _playerBestScore;
         public bool BeginRound()
         {
             if (Phase is not (GamePhases.RoundStart or GamePhases.RoundEnd))
@@ -123,13 +134,12 @@ namespace BlackJackForOne.Application
                     state = new HandState(
                         Cards: new ReadOnlyCollection<string>(cards),
                         Value: value, 
-                        IsActiveID: _activeHand,
+                        IsActiveID: id,
                         Busted: bustedHand);
                     states.Add(state);
                 
                     if (bustedHand || Game.HasBlackjack(hand)) 
                     {
-                        bustedHand = Game.IsBusted(hand);
                         if (player.HasSplit && _activeHand == 0) _activeHand = 1;
                         else isDone = true;
                     }
@@ -157,7 +167,7 @@ namespace BlackJackForOne.Application
                     state = new HandState(
                         Cards: new ReadOnlyCollection<string>(cards),
                         Value: value, 
-                        IsActiveID: _activeHand,
+                        IsActiveID: id,
                         Busted: bustedHand);
                     states.Add(state);
                     
@@ -225,7 +235,27 @@ namespace BlackJackForOne.Application
             if (isDone)
             {
                 Phase = GamePhases.DealerTurn;
-
+                _activeHand = 0;
+                var hands = Game.Player.Hands;
+                // Check if player busted, if so skip dealer turn
+                if (Game.Player.HasSplit)
+                {
+                    if (Game.IsBusted(hands[0]) && Game.IsBusted(hands[1]))
+                    {
+                        Phase = GamePhases.Payout;
+                    }
+                    _playerBestScore = hands[0].CurrentValue() >= hands[1].CurrentValue()
+                        ? hands[0].CurrentValue()
+                        : hands[1].CurrentValue();
+                }
+                else if (Game.IsBusted(hands[0]))
+                {
+                    Phase = GamePhases.Payout;
+                }
+                else
+                {
+                    _playerBestScore = hands[0].CurrentValue();
+                }
             }
             
             var result = new Result(reply, blackjackInfo, states);
@@ -233,7 +263,7 @@ namespace BlackJackForOne.Application
             return result;
         }
 
-        public void TryDealerTurn()
+        public DealerResult TryDealerTurn()
         {
             if (Phase != GamePhases.DealerTurn)
             {
@@ -242,20 +272,97 @@ namespace BlackJackForOne.Application
                 );
             }
             
-            // Check if player busted
-
             // check if dealer blackjackgit
-            // otherwise deal card to dealer until 17 or higher
-            //  check after each card, send info to console
-            // move to resultphase/winnings/payout whatever
+            var dealer = Game.Dealer;
+            var reply = Replies.Empty;
+
+            if (Game.HasBlackjack(dealer))
+            {
+                reply = Replies.DealerBlackjack;
+                Phase = GamePhases.Payout;
+            }
+            else if (Game.IsBusted(dealer))
+            {
+                reply = Replies.DealerBusted;
+                Phase = GamePhases.Payout;
+
+            }
+            else if (dealer.CurrentValue() > _playerBestScore)
+            {
+                reply = Replies.DealerWin;
+                Phase = GamePhases.Payout;
+
+            }
+            else if (dealer.CurrentValue() <= 17 && dealer.CurrentValue() < _playerBestScore) Game.NewHit(dealer);
+            else
+            {
+                reply = Replies.DealerLose;
+                Phase = GamePhases.Payout;
+            }
+            var hand = dealer.Cards.Select(card => card.Rank.ToString()).ToList();
+            var result = new DealerResult(
+                Cards: new ReadOnlyCollection<string>(hand),
+                Reply: reply,
+                Value: dealer.CurrentValue()
+            );
+            return result;
+        }
+
+        public WinnerResult TryPayout()
+        {
+            if (Phase != GamePhases.Payout)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot calculate winnings in the current phase: {Phase}."
+                );
+            }
+
+            var reply = Replies.Empty;
 
 
 
+
+            var player = Game.Player;
+            var playerHands = player.Hands;
+            var dealer = Game.Dealer;
+
+            if (Game.IsBusted(playerHands[_activeHand])) reply = Replies.DealerWin;
+            else if (Game.IsBusted(dealer)) reply = Replies.PlayerWin;
+            else if (dealer.CurrentValue() == playerHands[_activeHand].CurrentValue()) reply = Replies.Tie;
+            else reply = dealer.CurrentValue() > playerHands[_activeHand].CurrentValue() ? Replies.DealerWin : Replies.PlayerWin;
+
+            if (player.HasSplit && _activeHand == 0)
+            {
+                _activeHand = 1;
+            }
+            else Phase = GamePhases.RoundEnd;
+
+            var currentHand = playerHands[_activeHand];
+            var playerCards = currentHand.Cards.Select(card => card.Rank.ToString()).ToList();
+            var playerState = new HandState(
+                Cards: new ReadOnlyCollection<string>(playerCards),
+                Value: currentHand.CurrentValue(),
+                IsActiveID: _activeHand
+            );
+            var hand = dealer.Cards.Select(card => card.Rank.ToString()).ToList();
+            var dealerResult = new DealerResult(
+                Cards: new ReadOnlyCollection<string>(hand),
+                Reply: Replies.Empty,
+                Value: dealer.CurrentValue()
+            );
+
+            var winner = new WinnerResult(
+                Player: playerState,
+                Dealer: dealerResult,
+                WinCondition: reply
+            );
+
+            return winner;
         }
 
         public void EndRound()
         {
-            if (Phase != GamePhases.DealerTurn)
+            if (Phase != GamePhases.RoundEnd)
             {
                 throw new InvalidOperationException(
                     $"Cannot End round in the current phase: {Phase}."
@@ -298,21 +405,6 @@ namespace BlackJackForOne.Application
             return Replies.Empty;
         }
 
-        public (string, string) ExposeHands()
-        {
-            if (Game.Player.Hands.Count == 0)
-            {
-                throw new InvalidOperationException(
-                    $"Player has no cards to display"
-                );
-            }
-            var hand2 = "";
-            var hand1 = Game.Player.Hands[0].ShowCards();  
-            if (Game.Player.HasSplit) hand2 = Game.Player.Hands[1].ShowCards(); 
-
-            return (hand1, hand2);
-        }
-
         public HandState GetActiveHand()
         {
             var hand = Game.Player.Hands[_activeHand];
@@ -326,6 +418,20 @@ namespace BlackJackForOne.Application
                 IsActiveID: _activeHand);
             
             return state;
+        }
+
+        public DealerResult GetDealerHand()
+        {
+
+            var dealer = Game.Dealer;
+            var hand = dealer.Cards.Select(card => card.Rank.ToString()).ToList();
+            var result = new DealerResult(
+                Cards: new ReadOnlyCollection<string>(hand),
+                Reply: Replies.Empty,
+                Value: dealer.CurrentValue()
+            );
+
+            return result;
         }
     }
 }

@@ -17,9 +17,4 @@ public class BlackJackRules
     {
         return hand.CurrentValue() > 21;
     }
-
-    public bool checkBalance(int balance)
-    {
-        return balance > MinBet;
-    }
 }
